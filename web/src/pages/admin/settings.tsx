@@ -319,13 +319,14 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>{t("settings.language")}</Label>
-                  <Select value={locale} onValueChange={(v) => setLocale(v as "en" | "zh")}>
+                  <Select value={locale} onValueChange={(v) => setLocale(v as "en" | "zh" | "ru")}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en">English</SelectItem>
                       <SelectItem value="zh">中文</SelectItem>
+                      <SelectItem value="ru">Русский</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">{t("settings.languageDesc")}</p>
