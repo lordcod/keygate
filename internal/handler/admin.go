@@ -1041,6 +1041,7 @@ func (h *AdminHandler) CreatePlan(c *gin.Context) {
 		// zero-grace plan could only be made with a second PUT.
 		GraceDays            *int   `json:"grace_days"`
 		StripePriceID        string `json:"stripe_price_id"`
+		YooKassaAmount       int64  `json:"yookassa_amount"`
 		UpdatesDays          int    `json:"updates_days"`
 		RenewalDays          int    `json:"renewal_days"`
 		StripeRenewalPriceID string `json:"stripe_renewal_price_id"`
@@ -1206,6 +1207,10 @@ func (h *AdminHandler) CreatePlan(c *gin.Context) {
 		return
 	}
 
+	if err := validateYooKassaPlan(req.YooKassaAmount, req.LicenseType, billingInterval, req.SelfSignup); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
 	p := &model.Plan{
 		ProductID:            req.ProductID,
 		Name:                 req.Name,
@@ -1217,6 +1222,7 @@ func (h *AdminHandler) CreatePlan(c *gin.Context) {
 		TrialDays:            req.TrialDays,
 		GraceDays:            graceDays,
 		StripePriceID:        req.StripePriceID,
+		YooKassaAmount:       req.YooKassaAmount,
 		UpdatesDays:          maint.UpdatesDays,
 		RenewalDays:          maint.RenewalDays,
 		StripeRenewalPriceID: maint.StripeRenewalPriceID,
@@ -1298,6 +1304,7 @@ func (h *AdminHandler) UpdatePlan(c *gin.Context) {
 		TrialDays            *int    `json:"trial_days"`
 		GraceDays            *int    `json:"grace_days"`
 		StripePriceID        *string `json:"stripe_price_id"`
+		YooKassaAmount       *int64  `json:"yookassa_amount"`
 		UpdatesDays          *int    `json:"updates_days"`
 		RenewalDays          *int    `json:"renewal_days"`
 		StripeRenewalPriceID *string `json:"stripe_renewal_price_id"`
@@ -1608,6 +1615,14 @@ func (h *AdminHandler) UpdatePlan(c *gin.Context) {
 		return
 	}
 	p.StripePriceID = purchasePrice
+	if req.YooKassaAmount != nil {
+		p.YooKassaAmount = *req.YooKassaAmount
+		cols = append(cols, "yookassa_amount")
+	}
+	if err := validateYooKassaPlan(p.YooKassaAmount, licenseType, billingInterval, selfSignup); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
 	if req.StripePriceID != nil {
 		cols = append(cols, "stripe_price_id")
 	}
@@ -1669,7 +1684,7 @@ func (h *AdminHandler) UpdatePlan(c *gin.Context) {
 		LicenseType:          req.LicenseType,
 	}
 	fallbackWrite := planFallbackWrite{
-		Guard: req.StripePriceID != nil || terms.carried(),
+		Guard: req.StripePriceID != nil || req.YooKassaAmount != nil || terms.carried(),
 	}
 	if p.TrialFallbackPlanID != stored.TrialFallbackPlanID {
 		fallbackWrite.Names = p.TrialFallbackPlanID
@@ -4452,7 +4467,12 @@ func (h *AdminHandler) ChangeLicensePlan(c *gin.Context) {
 // settingsWritable lists the keys the dashboard may write. Anything
 // else is rejected so a typo can't quietly create a dead row.
 var settingsWritable = map[string]bool{
-	"site_name": true, "timezone": true, "language": true, "brand_color": true, "logo_url": true,
+	"yookassa_mode":       true,
+	"yookassa_shop_id":    true,
+	"yookassa_secret_key": true,
+	"yookassa_test_mode":  true,
+	"yookassa_vat_code":   true,
+	"site_name":           true, "timezone": true, "language": true, "brand_color": true, "logo_url": true,
 	"signup_mode":                      true,
 	service.ReminderDaysSetting:        true,
 	"maintenance_features_enabled":     true,
@@ -4501,6 +4521,7 @@ func init() {
 // Cloudflare API token. They are encrypted at rest (store layer) and
 // GetSettings reports only whether each is set, never the value.
 var settingsSecret = map[string]bool{
+	"yookassa_secret_key":  true,
 	"cloudflare_api_token": true,
 	"smtp_password":        true,
 }
@@ -4511,8 +4532,10 @@ var settingsSecret = map[string]bool{
 // "licensed_only" as open registration, so "licensedonly" would report
 // saved while leaving the endpoint open to strangers.
 var settingsEnum = map[string][]string{
-	"signup_mode":    {"open", "licensed_only"},
-	"email_provider": {"smtp", "cloudflare"},
+	"yookassa_mode":      {"env", "database", "disabled"},
+	"yookassa_test_mode": {"true", "false"},
+	"signup_mode":        {"open", "licensed_only"},
+	"email_provider":     {"smtp", "cloudflare"},
 }
 
 // settingsServerOwned lists keys the server writes for itself — the
@@ -4761,12 +4784,16 @@ func (h *AdminHandler) UpdateSettings(c *gin.Context) {
 		}
 	}
 
+	if err := h.validateYooKassaSettings(c, writes); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
 	if err := h.Store.SetSettings(c, writes); err != nil {
 		// A missing master key is an operator config problem, not a
 		// server fault: say so plainly instead of a bare 500.
 		if errors.Is(err, store.ErrSecretEncryptionUnavailable) {
 			response.Err(c, http.StatusServiceUnavailable, "ENCRYPTION_NOT_CONFIGURED",
-				"cannot store email credentials without an encryption key — set RELEASE_KEY_ENCRYPTION_KEY and restart")
+				"cannot store credentials without an encryption key — set RELEASE_KEY_ENCRYPTION_KEY and restart")
 			return
 		}
 		response.Internal(c, err)

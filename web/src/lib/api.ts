@@ -261,6 +261,8 @@ export const portal = {
     }>("/portal/subscription/pending", data),
   cancelSubscription: (data: { license_id: string; immediate?: boolean }) =>
     post<{ status: string; immediate: boolean }>("/portal/subscription/cancel", data),
+  cancelYooKassaSubscription: (data: { license_id: string }) =>
+    post<{ status: string; immediate: boolean }>("/portal/subscription/yookassa/cancel", data),
   getBillingPortal: (data: { license_id: string }) =>
     post<{ url: string }>("/portal/subscription/billing-portal", data),
   getInvoices: (licenseId: string) =>
@@ -777,6 +779,7 @@ export interface Plan {
   trial_fallback_plan_id?: string
   grace_days: number
   stripe_price_id?: string
+  yookassa_amount?: number
   // Maintenance period (perpetual plans): days of updates a purchase
   // includes (0 = for life) and the one-time renewal sold in the portal.
   updates_days?: number

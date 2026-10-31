@@ -154,6 +154,9 @@ func (h *PublicPlansHandler) ListPlans(c *gin.Context) {
 			// the price itself, so it stays the source of truth for
 			// what actually gets charged.
 		}
+		if p.YooKassaAmount > 0 {
+			out["price"], out["currency"], out["payment_provider"] = p.YooKassaAmount, "rub", "yookassa"
+		}
 		active = append(active, out)
 	}
 

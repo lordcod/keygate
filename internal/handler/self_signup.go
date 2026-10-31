@@ -50,7 +50,7 @@ func (h *AuthHandler) signupPlan(c *gin.Context) *model.Plan {
 // right now. A plan with an update period never qualifies: the period
 // needs the gating checks a sale gets, and a free plan has no use for it.
 func selfSignupOpen(plan *model.Plan) bool {
-	return plan.Active && plan.SelfSignup && plan.StripePriceID == "" &&
+	return plan.Active && plan.SelfSignup && plan.StripePriceID == "" && plan.YooKassaAmount == 0 &&
 		plan.InitialUpdatesUntil(time.Now()) == nil
 }
 

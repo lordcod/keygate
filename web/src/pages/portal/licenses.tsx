@@ -299,6 +299,14 @@ function LicenseCard({ license: lic, renewalsEnabled }: { license: PortalLicense
         )}
 
         {/* Billing actions (license holder only) */}
+        {isOwner && lic.payment_provider === "yookassa" && lic.plan?.license_type === "subscription" && (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{t(lic.cancel_scheduled ? "portal.yookassaStopped" : "portal.yookassaRecurring")}</p>
+            {!lic.cancel_scheduled && (
+              <Button variant="outline" size="sm" onClick={() => setShowCancel(true)}>{t("portal.cancelSubscription")}</Button>
+            )}
+          </div>
+        )}
         {isOwner && lic.payment_provider === "stripe" && (
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => setShowInvoices(true)}>
@@ -1135,6 +1143,7 @@ function CancelDialog({
 
   const cancelMut = useMutation({
     mutationFn: () => {
+      if (provider === "yookassa") return portal.cancelYooKassaSubscription({ license_id: licenseId })
       return portal.cancelSubscription({ license_id: licenseId, immediate })
     },
     onSuccess: () => {

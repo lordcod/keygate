@@ -437,6 +437,7 @@ function PlanDialog({
     token_ttl_days: plan?.token_ttl_days ?? 0,
     active: plan?.active ?? true,
     stripe_price_id: plan?.stripe_price_id || "",
+    yookassa_amount: plan?.yookassa_amount ?? 0,
     updates_days: plan?.updates_days ?? 0,
     renewal_days: plan?.renewal_days ?? 0,
     stripe_renewal_price_id: plan?.stripe_renewal_price_id || "",
@@ -459,6 +460,7 @@ function PlanDialog({
   // on a plan with a price, an update period or renewals. The option is
   // only offered where it can be saved.
   const charges =
+    form.yookassa_amount > 0 ||
     !!form.stripe_price_id.trim() ||
     (isPerpetual && (form.updates_days > 0 || form.renewal_days > 0 || !!form.stripe_renewal_price_id.trim()))
   const setLicenseType = (v: string) => {
@@ -861,6 +863,14 @@ function PlanDialog({
                   onChange={(e) => set("stripe_price_id", e.target.value)}
                   placeholder="price_..."
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="yookassa-amount">{t("plans.yookassaAmount")}</Label>
+                <Input id="yookassa-amount" type="number" min="0" max="1000000" step="0.01"
+                  value={form.yookassa_amount / 100}
+                  onChange={(e) => set("yookassa_amount", Math.round(Number(e.target.value) * 100))}
+                  aria-describedby="yookassa-amount-help" />
+                <p id="yookassa-amount-help" className="text-xs text-muted-foreground">{t("plans.yookassaAmountHelp")}</p>
               </div>
               {/* Self sign-up: free plans only. The /pay link becomes a
                 form where visitors confirm their email to get a key. */}

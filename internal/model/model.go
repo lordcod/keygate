@@ -265,6 +265,7 @@ type Plan struct {
 	TrialDays      int    `bun:",notnull" json:"trial_days"`
 	GraceDays      int    `bun:",notnull" json:"grace_days"`
 	StripePriceID  string `json:"stripe_price_id,omitempty"`
+	YooKassaAmount int64  `bun:"yookassa_amount,notnull" json:"yookassa_amount"` // RUB kopecks; zero disables YooKassa.
 	// Maintenance period, perpetual plans only. UpdatesDays is how
 	// long a purchase includes updates for (0 = for life). A renewal
 	// is a one-time purchase of RenewalDays more, sold at
@@ -1003,7 +1004,7 @@ func UpdatesUntilFor(licenseType string, days int, now time.Time) *time.Time {
 // plans_self_signup_free constraint holds a self sign-up plan to, and
 // the one an upgrade checks the licence's current plan against.
 func (p *Plan) IsFree() bool {
-	return p.StripePriceID == "" && p.UpdatesDays == 0 && p.RenewalDays == 0 && p.StripeRenewalPriceID == ""
+	return p.StripePriceID == "" && p.YooKassaAmount == 0 && p.UpdatesDays == 0 && p.RenewalDays == 0 && p.StripeRenewalPriceID == ""
 }
 
 // TrialFallbackRefusal says why p cannot be the plan that licences of a

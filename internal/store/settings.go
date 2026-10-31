@@ -281,6 +281,7 @@ var ErrSecretEncryptionUnavailable = errors.New(
 	"cannot store a secret without an encryption key: set RELEASE_KEY_ENCRYPTION_KEY")
 
 var settingSecretKeys = map[string]bool{
+	"yookassa_secret_key":  true,
 	"cloudflare_api_token": true,
 	"smtp_password":        true,
 }

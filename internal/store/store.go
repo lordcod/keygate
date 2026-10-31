@@ -1801,8 +1801,11 @@ func (s *Store) CancelScheduledLicenses(ctx context.Context, licenseIDs []string
 	// is still running. One unlinked or ended has nothing left to end.
 	var ids []string
 	if err := s.DB.NewRaw(`SELECT license.id FROM licenses license
-		WHERE license.id IN (?) AND COALESCE(license.stripe_subscription_id, '') <> ''
-			AND license.status IN (?) AND `+cancelStateSQL+` IS TRUE`,
+		WHERE license.id IN (?)
+			AND license.status IN (?) AND (
+			(COALESCE(license.stripe_subscription_id, '') <> '' AND `+cancelStateSQL+` IS TRUE)
+			OR (license.payment_provider = 'yookassa' AND EXISTS (
+			 SELECT 1 FROM yookassa_subscriptions ys WHERE ys.license_id = license.id AND ys.canceled)))`,
 		bun.In(licenseIDs), bun.In([]string{model.StatusActive, model.StatusTrialing, model.StatusPastDue})).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}

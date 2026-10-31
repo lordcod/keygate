@@ -106,6 +106,11 @@ const effective = (key: string, value: string | undefined) => (value ?? "") || (
 // so adding a field to the form without adding it here is a compile
 // error rather than a control that silently never saves.
 const FORM_KEYS = [
+  "yookassa_mode",
+  "yookassa_shop_id",
+  "yookassa_secret_key",
+  "yookassa_test_mode",
+  "yookassa_vat_code",
   "site_name",
   "timezone",
   "signup_mode",
@@ -189,6 +194,7 @@ export default function SettingsPage() {
       setForm((f) => {
         const next = { ...f }
         delete next.smtp_password
+        delete next.yookassa_secret_key
         delete next.cloudflare_api_token
         return next
       })
@@ -279,6 +285,7 @@ export default function SettingsPage() {
           <TabsTrigger value="general">{t("settings.general")}</TabsTrigger>
           <TabsTrigger value="team">{t("team.title")}</TabsTrigger>
           <TabsTrigger value="email">{t("settings.email")}</TabsTrigger>
+          <TabsTrigger value="payments">ЮKassa</TabsTrigger>
           <TabsTrigger value="templates">{t("settings.emailTemplates")}</TabsTrigger>
           <TabsTrigger value="security">{t("settings.security")}</TabsTrigger>
           <TabsTrigger value="system">{t("settings.system")}</TabsTrigger>
@@ -376,6 +383,54 @@ export default function SettingsPage() {
           <TeamManagement />
         </TabsContent>
 
+        <TabsContent value="payments" className="space-y-6">
+          <Card>
+            <CardHeader><CardTitle className="text-base">ЮKassa</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">{t("settings.yookassaHelp")}</p>
+              <div className="space-y-2">
+                <Label htmlFor="yookassa-mode">{t("settings.yookassaMode")}</Label>
+                <Select value={form.yookassa_mode || "env"} onValueChange={(v) => set("yookassa_mode", v)}>
+                  <SelectTrigger id="yookassa-mode"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="database">{t("settings.yookassaDatabase")}</SelectItem>
+                    <SelectItem value="env">{t("settings.yookassaEnv")}</SelectItem>
+                    <SelectItem value="disabled">{t("settings.yookassaDisabled")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.yookassa_mode === "database" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="yookassa-shop">{t("settings.yookassaShop")}</Label>
+                    <Input id="yookassa-shop" inputMode="numeric" value={form.yookassa_shop_id || ""} onChange={(e) => set("yookassa_shop_id", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="yookassa-secret">{t("settings.yookassaSecret")}</Label>
+                    <Input id="yookassa-secret" type="password" autoComplete="new-password" value={form.yookassa_secret_key || ""}
+                      onChange={(e) => set("yookassa_secret_key", e.target.value)}
+                      placeholder={data?.secrets_set?.yookassa_secret_key ? t("settings.secretSaved") : ""} />
+                    <p className="text-xs text-muted-foreground">{t("settings.secretKeepHint")}</p>
+                    {data?.secrets_set?.yookassa_secret_key && !form.yookassa_secret_key && (
+                      <Button type="button" variant="outline" size="sm" disabled={clearSecretMut.isPending} onClick={() => clearSecretMut.mutate("yookassa_secret_key")}>{t("settings.secretClear")}</Button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="yookassa-vat">{t("settings.yookassaVat")}</Label>
+                    <Input id="yookassa-vat" type="number" min="0" max="12" step="1" value={form.yookassa_vat_code || "0"} onChange={(e) => set("yookassa_vat_code", e.target.value)} />
+                    <p className="text-xs text-muted-foreground">{t("settings.yookassaVatHelp")}</p>
+                  </div>
+                  <label className="flex items-center gap-3 self-start">
+                    <input type="checkbox" checked={form.yookassa_test_mode === "true"} onChange={(e) => set("yookassa_test_mode", String(e.target.checked))} />
+                    <span className="text-sm">{t("settings.yookassaTest")}</span>
+                  </label>
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground">{t("settings.yookassaWebhook")}</p>
+              <code className="block break-all text-sm">{window.location.origin}/api/v1/webhook/yookassa</code>
+            </CardContent>
+          </Card>
+        </TabsContent>
         <TabsContent value="email" className="space-y-6">
           <Card>
             <CardHeader>

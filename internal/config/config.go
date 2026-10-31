@@ -24,6 +24,10 @@ type Config struct {
 	LicenseSigningKey string
 
 	StripeSecretKey     string
+	YooKassaShopID      string
+	YooKassaSecretKey   string
+	YooKassaTestMode    bool
+	YooKassaVATCode     int
 	StripeWebhookSecret string
 	// StripeLivemode tells the webhook handler which environment to
 	// trust. A mismatch between this flag and event.Livemode is a
@@ -128,6 +132,10 @@ func Load() (*Config, error) {
 		LicenseSigningKey: os.Getenv("LICENSE_SIGNING_KEY"),
 
 		StripeSecretKey:     os.Getenv("STRIPE_SECRET_KEY"),
+		YooKassaShopID:      os.Getenv("YOOKASSA_SHOP_ID"),
+		YooKassaSecretKey:   os.Getenv("YOOKASSA_SECRET_KEY"),
+		YooKassaTestMode:    os.Getenv("YOOKASSA_TEST_MODE") == "true",
+		YooKassaVATCode:     envIntOr("YOOKASSA_VAT_CODE", 0),
 		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
 	}
 
@@ -188,6 +196,18 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("LICENSE_SIGNING_KEY is required")
 	}
 
+	if (cfg.YooKassaShopID == "") != (cfg.YooKassaSecretKey == "") {
+		return nil, fmt.Errorf("YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY must be configured together")
+	}
+	if raw := os.Getenv("YOOKASSA_TEST_MODE"); raw != "" && raw != "true" && raw != "false" {
+		return nil, fmt.Errorf("YOOKASSA_TEST_MODE must be true or false")
+	}
+	if raw := os.Getenv("YOOKASSA_VAT_CODE"); raw != "" {
+		vat, err := strconv.Atoi(raw)
+		if err != nil || vat < 0 || vat > 12 {
+			return nil, fmt.Errorf("YOOKASSA_VAT_CODE must be an integer between 0 and 12")
+		}
+	}
 	return cfg, nil
 }
 

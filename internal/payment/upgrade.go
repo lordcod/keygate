@@ -81,7 +81,7 @@ func upgradeable(lic *model.License, current *model.Plan) bool {
 	if current == nil || current.ID != lic.PlanID || !current.IsFree() {
 		return false
 	}
-	if lic.StripeSubscriptionID != "" || lic.PaymentProvider == "stripe" {
+	if lic.StripeSubscriptionID != "" || lic.PaymentProvider == "stripe" || lic.PaymentProvider == "yookassa" {
 		return false
 	}
 	switch lic.Status {

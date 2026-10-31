@@ -418,6 +418,8 @@ func main() {
 	}
 	// Initialize thread-safe webhook secret with config value
 	stripeH.SetWebhookSecret(cfg.StripeWebhookSecret)
+	yooH := &payment.YooKassaHandler{Store: db, ShopID: cfg.YooKassaShopID, SecretKey: cfg.YooKassaSecretKey, BaseURL: cfg.BaseURL, TestMode: cfg.YooKassaTestMode, VATCode: cfg.YooKassaVATCode, Email: emailSvc, WebhookSvc: webhookSvc}
+
 	expiryChecker := service.NewExpiryChecker(db, emailSvc, webhookSvc, logger)
 	if cfg.StripeSecretKey != "" {
 		expiryChecker.EndPastDueUpgrade = stripeH.EndPastDueUpgrade
@@ -491,6 +493,20 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	{
+		go func() {
+			ticker := time.NewTicker(time.Minute)
+			defer ticker.Stop()
+			for {
+				yooH.Sync(ctx)
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
+			}
+		}()
+	}
 
 	// Auto-setup Stripe webhook endpoint if:
 	// - Stripe secret key is configured
@@ -869,6 +885,7 @@ func main() {
 		publicPlansH.ListPlans)
 
 	v1.POST("/webhook/stripe", middleware.RateLimitByIPScoped("stripe_webhook", 60, time.Minute), stripeH.Webhook)
+	v1.POST("/webhook/yookassa", middleware.RateLimitByIPScoped("yookassa_webhook", 120, time.Minute), yooH.Webhook)
 	// Stripe verify is hit by every successful checkout return, so the
 	// limit is generous, but the endpoint must NOT be naked: each call
 	// proxies to Stripe's API and an attacker could otherwise force us
@@ -878,7 +895,16 @@ func main() {
 		stripeH.VerifyCheckoutSession)
 
 	// Unified checkout: GET /pay/:checkout_id → Stripe
-	r.GET("/pay/:checkout_id", stripeH.CheckoutByPlan)
+	r.GET("/pay/:checkout_id", middleware.RateLimitByIPScoped("checkout", 30, time.Minute), func(c *gin.Context) {
+		plan, err := db.FindPlanByCheckoutID(c, c.Param("checkout_id"))
+		if err == nil && plan.YooKassaAmount > 0 && c.Query("provider") != "stripe" {
+			yooH.CheckoutByPlan(c)
+			return
+		}
+		stripeH.CheckoutByPlan(c)
+	})
+	r.POST("/pay/:checkout_id", middleware.RateLimitByIPScoped("yookassa_checkout", 10, time.Minute), yooH.CheckoutByPlan)
+	r.GET("/pay/yookassa/status/:order_id", middleware.RateLimitByIPScoped("yookassa_status", 30, time.Minute), yooH.Status)
 
 	// Self sign-up for free plans (/pay sends those plans to the form).
 	// The code-sending step shares the login's buckets, so it cannot be
@@ -1073,6 +1099,7 @@ func main() {
 		portal.POST("/subscription/change", subChangeLimit, stripeH.ChangeSubscription)
 		portal.POST("/subscription/pending", subChangeLimit, stripeH.PendingSubscriptionChange)
 		portal.POST("/subscription/cancel", stripeH.CancelSubscription)
+		portal.POST("/subscription/yookassa/cancel", yooH.CancelSubscription)
 		portal.POST("/subscription/billing-portal", stripeH.CreatePortalSession)
 		portal.GET("/subscription/invoices", stripeH.ListInvoices)
 		// Maintenance renewal for perpetual licenses: a one-time
