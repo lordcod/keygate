@@ -26,7 +26,7 @@ import (
 
 // All replicas serialize YooKassa charge creation, fulfilment and cancellation.
 // Network calls are bounded; no database row locks are held across them.
-const yooLock int64 = 0x594f4f4b41535341
+const yooLock int64 = store.YooKassaOperationLock
 
 type YooKassaHandler struct {
 	resolved                   bool
@@ -602,6 +602,9 @@ func (h *YooKassaHandler) Status(c *gin.Context) {
 	}
 	if order.Status == "canceled" {
 		page.Title, page.Message, page.Pending = "Платёж отменён", "Оплата не завершена. Вернитесь к тарифу, чтобы попробовать снова.", false
+	}
+	if order.Status == "deleted" {
+		page.Title, page.Message, page.Pending = "Лицензия удалена", "Продавец удалил лицензию для этого платежа. По вопросам доступа обратитесь к продавцу.", false
 	}
 	h.page(c, page)
 }

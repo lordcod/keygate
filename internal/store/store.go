@@ -762,6 +762,18 @@ func (s *Store) createLicenseWithSubscription(ctx context.Context, l *model.Lice
 	if err := LockReferencedRowsIn(ctx, tx, l.PlanID, l.ProductID); err != nil {
 		return err
 	}
+	if l.StripeCheckoutSessionID != "" {
+		if err := lockCheckoutLifecycle(ctx, tx, l.StripeCheckoutSessionID); err != nil {
+			return err
+		}
+		deleted, err := HasProcessedEventIn(ctx, tx, DeletedCheckoutProvider, l.StripeCheckoutSessionID)
+		if err != nil {
+			return err
+		}
+		if deleted {
+			return ErrDeletedCheckout
+		}
+	}
 	if guard != nil {
 		if err := guard(ctx, tx); err != nil {
 			return err

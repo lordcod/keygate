@@ -1156,6 +1156,9 @@ func (h *StripeHandler) VerifyCheckoutSession(c *gin.Context) {
 // checkout session. A claim row alone is not proof: its owner may
 // still be running, or may have failed and released it.
 func (h *StripeHandler) sessionFulfilled(ctx context.Context, sessionID string) (bool, error) {
+	if deleted, err := h.Store.HasProcessedEvent(ctx, store.DeletedCheckoutProvider, sessionID); err != nil || deleted {
+		return deleted, err
+	}
 	_, err := h.Store.FindLicenseByStripeCheckoutSession(ctx, sessionID)
 	if err == nil {
 		return true, nil

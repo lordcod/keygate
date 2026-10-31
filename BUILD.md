@@ -13,3 +13,10 @@ Image
 ```
 image: cr.yandex/crp7sjuopuil9h33ujci/keygate:latest
 ```
+
+Pull server
+```
+docker compose pull keygate
+docker compose up -d --force-recreate keygate
+docker compose logs --since=2m keygate
+```

@@ -435,6 +435,7 @@ export const admin = {
   setLicenseUpdatesUntil: (id: string, updatesUntil: string) =>
     post<License>(`/admin/licenses/${id}/updates-until`, { updates_until: updatesUntil }),
   revokeLicense: (id: string) => post(`/admin/licenses/${id}/revoke`),
+  deleteLicense: (id: string) => del<{ status: string }>(`/admin/licenses/${id}`),
   suspendLicense: (id: string) => post(`/admin/licenses/${id}/suspend`),
   reinstateLicense: (id: string) => post(`/admin/licenses/${id}/reinstate`),
   refundLicense: (id: string) => post(`/admin/licenses/${id}/refund`),

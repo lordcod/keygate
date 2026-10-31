@@ -488,6 +488,24 @@ function LicenseDetail({ id, onClose }: { id: string; onClose: () => void }) {
   })
   const [copied, setCopied] = useState(false)
   const [changingPlan, setChangingPlan] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const deleteMut = useMutation({
+    mutationFn: () => admin.deleteLicense(id),
+    onSuccess: () => {
+      setConfirmDelete(false)
+      onClose()
+      qc.removeQueries({ queryKey: ["admin", "license", id] })
+      qc.invalidateQueries({ queryKey: ["admin"] })
+      qc.invalidateQueries({ queryKey: ["portal", "licenses"] })
+      showToast(t("licenses.deleted"), "success")
+    },
+    onError: (e: Error) => {
+      const code = errorCode(e)
+      showToast(code === "LICENSE_DELETE_SUBSCRIPTION_LINKED" ? t("licenses.deleteLinked")
+        : code === "LICENSE_DELETE_PAYMENT_PENDING" ? t("licenses.deletePending")
+        : code === "LICENSE_DELETE_BILLING_BUSY" ? t("licenses.deleteBusy") : e.message, "error")
+    },
+  })
   // null = not editing; "" = editing with empty value (perpetual)
   const [editingValidUntil, setEditingValidUntil] = useState<string | null>(null)
 
@@ -1015,6 +1033,9 @@ function LicenseDetail({ id, onClose }: { id: string; onClose: () => void }) {
                   >
                     {t("licenses.changePlan")}
                   </Button>
+                  <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(true)} disabled={deleteMut.isPending}>
+                    <Trash2 className="h-4 w-4 mr-1" /> {t("licenses.deletePermanently")}
+                  </Button>
                 </div>
 
                 {/* Activations — hidden for SaaS products (which don't
@@ -1126,6 +1147,25 @@ function LicenseDetail({ id, onClose }: { id: string; onClose: () => void }) {
             onClose={() => setChangingPlan(false)}
           />
         )}
+        {lic && <AlertDialog open={confirmDelete} onOpenChange={(open) => !deleteMut.isPending && setConfirmDelete(open)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("licenses.deleteTitle")}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t("licenses.deleteConfirm", { email: lic.email, id: lic.id })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {!!lic.stripe_subscription_id && <p className="text-sm text-destructive">{t("licenses.deleteLinked")}</p>}
+            <div className="flex justify-end gap-2">
+              <AlertDialogCancel disabled={deleteMut.isPending}>{t("common.cancel")}</AlertDialogCancel>
+              <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deleteMut.isPending || !!lic.stripe_subscription_id}
+                onClick={(event) => { event.preventDefault(); deleteMut.mutate() }}>
+                {deleteMut.isPending ? t("common.loading") : t("licenses.deletePermanently")}
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>}
         <AlertDialog open={confirmUnlink} onOpenChange={() => setConfirmUnlink(false)}>
           <AlertDialogContent>
             <AlertDialogHeader>

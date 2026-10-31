@@ -1166,6 +1166,7 @@ func main() {
 		licWrite.GET("/licenses", adminH.ListLicenses)
 		licWrite.GET("/licenses/export", adminH.ExportLicenses)
 		licWrite.GET("/licenses/:id", adminH.GetLicense)
+		licWrite.DELETE("/licenses/:id", adminH.DeleteLicense)
 		licWrite.GET("/licenses/:id/key", adminH.RevealLicenseKey)
 		licWrite.POST("/licenses/:id/rotate-key", adminH.RotateLicenseKey)
 		// Mails the key to the address on the licence, for a send

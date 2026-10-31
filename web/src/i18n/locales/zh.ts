@@ -1,4 +1,11 @@
 const zh = {
+  "licenses.deletePermanently": "永久删除",
+  "licenses.deleteTitle": "永久删除此许可证？",
+  "licenses.deleteConfirm": "将永久删除 {email} 的许可证 {id}，包括激活、席位和用量数据。YooKassa 自动续订将停止。此操作无法撤销，也不会退款。客户账户、审计日志和付款防重记录将保留。",
+  "licenses.deleteLinked": "删除前请取消并解绑 Stripe 订阅。",
+  "licenses.deletePending": "存在未完成的付款或升级结账。请先完成或取消。",
+  "licenses.deleteBusy": "付款信息正在更新，请稍后重试。",
+  "licenses.deleted": "许可证已永久删除",
   "settings.yookassaHelp": "设置无需重启即可生效。价格在套餐中设置。密钥与 SMTP 密码一样加密存储。更换商店或测试模式会停止处理原有订阅，直到恢复原配置。",
   "settings.yookassaMode": "配置来源",
   "settings.yookassaDatabase": "使用此处的设置",

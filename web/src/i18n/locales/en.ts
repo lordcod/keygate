@@ -1,4 +1,11 @@
 const en = {
+  "licenses.deletePermanently": "Delete permanently",
+  "licenses.deleteTitle": "Permanently delete this license?",
+  "licenses.deleteConfirm": "License {id} for {email} will be permanently removed, including activations, seats and usage data. YooKassa automatic renewal will stop. This cannot be undone and does not refund payments. The customer account, audit log and payment replay markers remain.",
+  "licenses.deleteLinked": "Cancel and unlink the Stripe subscription before deleting this license.",
+  "licenses.deletePending": "A payment or upgrade checkout is pending. Complete or cancel it before deleting this license.",
+  "licenses.deleteBusy": "Billing is being updated. Try again shortly.",
+  "licenses.deleted": "License permanently deleted",
   "settings.yookassaHelp": "Changes apply without restarting. Set each plan's price separately. The secret is encrypted using RELEASE_KEY_ENCRYPTION_KEY, just like the SMTP password. Changing the shop or test mode stops processing earlier subscriptions until the original configuration is restored.",
   "settings.yookassaMode": "Configuration source",
   "settings.yookassaDatabase": "Use these settings",
